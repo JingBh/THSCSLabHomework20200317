@@ -60,6 +60,7 @@
                 <p class="d-inline-block lead">Loading data...</p>
             </div>
             <div class="tab-content" id="tabContent">
+                <div id="map" style="width:100%;height:30rem;"></div>
                 <table class="table table-sm text-center w-100" id="table" style="white-space:nowrap;"></table>
             </div>
         </div>
@@ -69,7 +70,46 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4/dist/js/bootstrap.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/datatables.net@1/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/datatables.net-bs4@1/js/dataTables.bootstrap4.min.js"></script>
+<script src="https://webapi.amap.com/maps?v=1.4.15&key=b4cd3233f7119aaea30196bf6fd43445&plugin=AMap.DistrictLayer,AMap.Scale,AMap.ToolBar"></script>
 <script>
+    function loadmap(data) {
+        window._mapColors = {};
+        let map = new AMap.Map("map",{
+            zooms: [4, 6],
+            showIndoorMap: false,
+            zoom: 4,
+            isHotspot: false,
+            defaultCursor: "pointer",
+            touchZoomCenter: 1,
+            pitch: 0,
+            layers: [
+                new AMap.DistrictLayer.Country({
+                    zIndex: 10,
+                    SOC:'CHN',
+                    depth: 1,
+                    styles: {
+                        'nation-stroke': '#22ffff',
+                        'coastline-stroke': [0.85, 0.63, 0.94, 1],
+                        'province-stroke': 'white',
+                        'city-stroke': 'rgba(255,255,255,0.5)',
+                        'fill': function(props) {
+                            let name = props.NAME_CHN.substring(0, 2);
+                            if (window._mapColors[name]) {
+                                return window._mapColors[name];
+                            } else {
+                                let value = data[name] || 0;
+                                let transparent = Math.min(Math.sqrt(value) / 15, 1);
+                                return `rgba(255, 0, 0, ${transparent})`;
+                            }
+                        }
+                    }
+                })
+            ],
+            resizeEnable: true
+        });
+        map.addControl(new AMap.Scale());
+        window._map = map;
+    }
     function load(nav, target, callback) {
         // $("#contentLoading").show();
         // $("#tabContent").hide();
@@ -78,6 +118,7 @@
         if (nav === "date") url += "?date=" + target;
         if (nav === "province") url += "?province=" + target;
         $.get(url).done(function(data) {
+            window._data = data;
             /* Load nav */
             const navCol = data["navCol"];
             if (navCol && data[navCol]) {
@@ -110,6 +151,8 @@
 
             /* Load data */
             if (window._dataTable) window._dataTable.destroy();
+            if (window._map) window._map.destroy();
+
             let table = $("#table");
             let dt = window._dataTable = table.DataTable({
                 columns: [{
@@ -119,13 +162,25 @@
                     title: "省份",
                     className: "data-province"
                 }, {
-                    title: "累计确诊"
+                    title: "累计确诊",
+                    render: {
+                        display: function(data, type, row) {
+                            if (row[5] > 0) {
+                                return `${data} <small class="text-danger">(+${row[5]})</small>`;
+                            } else return data;
+                        }
+                    }
                 }, {
-                    title: "累计死亡"
+                    title: "现存确诊",
+                    data: function(row) {
+                        return row[2] - row[4];
+                    }
                 }, {
-                    title: "累计治愈"
+                    title: "累计死亡",
+                    data: 3
                 }, {
-                    title: "新增确诊"
+                    title: "累计治愈",
+                    data: 4
                 }],
                 data: data["data"],
                 paginate: false,
@@ -148,6 +203,14 @@
                         });
                         $(this).empty().append(ele);
                     });
+
+                    let mapdata = {};
+                    for (let i in data["data"]) {
+                        // 获取现存确诊数
+                        mapdata[data["data"][i][1].substring(0, 2)] = data["data"][i][2] - data["data"][i][4];
+                    }
+                    loadmap(mapdata);
+                    $("#map").show();
                     break;
                 case "province":
                     dt.column(1).visible(false);
@@ -160,6 +223,7 @@
                         });
                         $(this).empty().append(ele);
                     });
+                    $("#map").hide();
                     break;
             }
         }).fail(function(error) {
