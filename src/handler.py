@@ -65,6 +65,7 @@ class DataHandler(RequestHandler):
 
         # 以 JSON 返回
         self.set_header("Content-Type", "application/json")
+        self.set_status(200)
         self.write(json.dumps(result))
 
 
