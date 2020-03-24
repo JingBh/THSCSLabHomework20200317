@@ -1,0 +1,7 @@
+venv
+
+database/progress.dat
+database/default.db
+database/default.db-journal
+
+plan.txt
