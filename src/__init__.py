@@ -22,7 +22,6 @@ def start_server():
         (r"/", IndexHandler),
         (r"/progress", ProgressHandler),
         (r"/data", DataHandler),
-        (r"/js/(.*)", tornado.web.StaticFileHandler, {"path": get_path("resources/js")}),
         (r"/css/(.*)", tornado.web.StaticFileHandler, {"path": get_path("resources/css")})
     ], debug=True)
     application.listen(10317)
