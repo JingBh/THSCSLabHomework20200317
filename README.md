@@ -3,7 +3,7 @@
 ## How to install:
 ```bash
 git clone https://github.com/JingBh/THSCSLabHomework20200317
-cd HSCSLabHomework20200317
+cd THSCSLabHomework20200317
 pip install -r requirements.txt
 ```
 
